@@ -1,5 +1,10 @@
 model DroneDeliveryModel
 
+-- enumeration for states
+enum Drone_State {Charged, Delivering, Discharged}
+enum Receptacle_State {Free, Occupied}
+enum Command_State {Created, Assigned, Delivered}
+
 class Drone end
 
 class Point 
@@ -18,7 +23,31 @@ end
 class Warehouse end
 
 
-class Receptacle end
+class Receptacle < Point
+    attributes
+        capacity : Integer init = 0
+        state : Receptacle_State init = Receptacle_State::Free
+
+    operations 
+    	-- All neighbours 
+        neighbours() : Set(Box) =
+            Box.allInstances() -> select (n | distance(n) < 3)
+
+        -- Set receptacles' states
+        setFree()
+			begin
+				self.state := Receptacle_State::Free;
+			end
+        setOccupied()
+	    	begin
+	    		self.state := Receptacle_State::Occupied;
+			end
+
+		-- Get distance with an other given drone
+		distanceDrone(d : Drone) : Integer =
+            (self.x-d.position_drone.x).abs + (self.y-d.position_drone.y).abs
+		
+end
 
 class Command end
 
@@ -39,7 +68,12 @@ association Destination between
 	Command[1] role cmd;
 end
 
-association delivery between 
+association Position between 
+	Point[1] role position_drone;
+	Drone[*] role drone_position;
+end
+
+association Delivery between 
 	Receptacle[1] role receptacle;
 	Drone[1] role deliver;
 end
@@ -47,4 +81,5 @@ end
 association Crew between 
 	Warehouse[1] role warehouse;
 	Drone[*] role drones;
-end 
+
+end
