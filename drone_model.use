@@ -1,0 +1,31 @@
+model DroneDeliveryModel
+
+class Drone end
+
+class Warehouse end
+
+class Receptacle end
+
+class Command end
+
+class Grid end
+
+association Owner between 
+	Warehouse[*] role warehouse;
+	Grid[*] role grid;
+end
+
+association Location between 
+	Receptacle[*] role receptacles;
+	Grid[*] role grid;
+end
+
+association Destination between 
+	Receptacle[*] role receptacle;
+	Command[*] role cmd;
+end
+
+association Crew between 
+	Warehouse[*] role warehouse;
+	Drone[*] role drones;
+end
