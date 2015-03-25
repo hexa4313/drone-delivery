@@ -2,7 +2,21 @@ model DroneDeliveryModel
 
 class Drone end
 
+class Point 
+attributes 
+		x : Integer
+		y : Integer	
+	operations
+		-- Manhattan distance between two points 
+		distance(dest : Point ) : Integer =
+			(self.x - dest.x).abs + (self.y - dest.y).abs
+
+		-- check if there is a receptacle or a warehouse in the current point
+		
+end
+
 class Warehouse end
+
 
 class Receptacle end
 
@@ -11,21 +25,21 @@ class Command end
 class Grid end
 
 association Owner between 
-	Warehouse[*] role warehouse;
-	Grid[*] role grid;
+	Warehouse[1] role warehouse;
+	Grid[1] role grid;
 end
 
 association Location between 
 	Receptacle[*] role receptacles;
-	Grid[*] role grid;
+	Grid[1] role grid;
 end
 
 association Destination between 
-	Receptacle[*] role receptacle;
+	Receptacle[1] role receptacle;
 	Command[*] role cmd;
 end
 
 association Crew between 
-	Warehouse[*] role warehouse;
+	Warehouse[1] role warehouse;
 	Drone[*] role drones;
-end
+end 
