@@ -5,10 +5,34 @@ enum Drone_State {Charged, Delivering, Discharged}
 enum Receptacle_State {Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
-class Drone end
+class Drone
+	attributes
+		capacity : Integer init = 0
+		energy : Integer init = 3
+
+	operations
+
+		distancePoint(p:Point) : Integer = (self.position_drone.x - p.x).abs + (self.position_drone.y - p.y).abs;
+
+		recharge ()
+			begin
+				self.energy := self.energy + 1;
+				-- TODO test if energy <3 and maybe incremente time
+			end
+		move (newX : Integer, newY : Integer)
+		begin
+			declare point : Point;
+			point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
+			delete (self,self.position_drone) from Position; 
+			insert (self, point) into Position;
+			self.energy := self.energy -1;
+			
+		end
+
+end
 
 class Point 
-attributes 
+	attributes 
 		x : Integer
 		y : Integer	
 	operations
@@ -43,7 +67,7 @@ class Receptacle < Point
 	    		self.state := Receptacle_State::Occupied;
 			end
 
-		-- Get distance with an other given drone
+		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
             (self.x-d.position_drone.x).abs + (self.y-d.position_drone.y).abs
 		
