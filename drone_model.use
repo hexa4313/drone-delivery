@@ -36,7 +36,12 @@ end
 
 association Destination between 
 	Receptacle[1] role receptacle;
-	Command[*] role cmd;
+	Command[1] role cmd;
+end
+
+association delivery between 
+	Receptacle[1] role receptacle;
+	Drone[1] role deliver;
 end
 
 association Crew between 
