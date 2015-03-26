@@ -23,8 +23,8 @@ class Drone
 		begin
 			declare point : Point;
 			point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
-			delete (self,self.position_drone) from Position; 
-			insert (self, point) into Position;
+			delete (self.position_drone, self) from Position; 
+			insert (point, self) into Position;
 			self.energy := self.energy -1;
 			
 		end
@@ -44,7 +44,7 @@ class Point
 		
 end
 
-class Warehouse end
+class Warehouse < Point end
 
 
 class Receptacle < Point
@@ -54,8 +54,8 @@ class Receptacle < Point
 
     operations 
     	-- All neighbours 
-        neighbours() : Set(Box) =
-            Box.allInstances() -> select (n | distance(n) < 3)
+        neighbours() : Set(Receptacle) =
+            Receptacle.allInstances() -> select (n | distance(n) < 3)
 
         -- Set receptacles' states
         setFree()
@@ -73,7 +73,20 @@ class Receptacle < Point
 		
 end
 
-class Command end
+class Command
+	attributes
+		state : Command_State init = Command_State::Created
+
+	operations
+	 	assign()
+		 	begin
+		 		self.state := Command_State::Assigned
+		 	end
+	 	deliver()
+		 	begin
+		 		self.state := Command_State::Delivered
+		 	end
+end
 
 class Grid end
 
@@ -107,3 +120,26 @@ association Crew between
 	Drone[*] role drones;
 
 end
+
+-- ####### CONSTRAINTS  ##########
+constraints
+
+-- The Battery level is always between 3 and 0
+context Drone inv batteryLevel : self.energy >= 0 and self.energy <= 3 
+
+-- Every Point is Unique
+context pointA, pointB:Point inv allPointAreUnique : 
+	 (pointA.x = pointB.x) and 
+	 (pointA.y = pointB.y)
+	 implies pointA = pointB
+
+-- There is no 2 or more drones at the same receptacle
+context point:Point inv atMostOneDronePerReceptacle:
+	if not point.oclIsTypeOf(Warehouse) then
+		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
+		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+	else
+		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+	endif
+
+context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size=1
