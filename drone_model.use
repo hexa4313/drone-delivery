@@ -29,6 +29,8 @@ class Drone
 			
 		end
 		deliver()
+		--pre droneIsCharged : self.capacity <> 0
+		--pre droneIsAtTheLocation : Receptacle.allInstances-> one(r | r.distance(self) =0) and not Warehouse.allInstances-> exists (w | w.distance(self)
 			begin
 				declare recep : Set(Receptacle);
 				-- fill current receptacle 
