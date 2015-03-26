@@ -28,6 +28,18 @@ class Drone
 			self.energy := self.energy -1;
 			
 		end
+		deliver()
+			begin
+				declare recep : Set(Receptacle);
+				-- fill current receptacle 
+				recep := Receptacle.allInstances().select( r | r.distanceDrone(self) = 0);
+				for r in recep do
+					r.capacity := r.capacity + self.capacity;
+				end;
+
+				self.capacity := 0;
+				delete (self.receptacle, self) from Delivery;
+			end
 
 end
 
@@ -124,16 +136,16 @@ end
 -- ####### CONSTRAINTS  ##########
 constraints
 
--- The Battery level is always between 3 and 0
+-- ** The Battery level is always between 3 and 0
 context Drone inv batteryLevel : self.energy >= 0 and self.energy <= 3 
 
--- Every Point is Unique
+-- ** Every Point is Unique
 context pointA, pointB:Point inv allPointAreUnique : 
 	 (pointA.x = pointB.x) and 
 	 (pointA.y = pointB.y)
 	 implies pointA = pointB
 
--- There is no 2 or more drones at the same receptacle
+-- ** There is no 2 or more drones at the same receptacle
 context point:Point inv atMostOneDronePerReceptacle:
 	if not point.oclIsTypeOf(Warehouse) then
 		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
@@ -147,4 +159,5 @@ context point:Point inv atMostOneDronePerReceptacle:
 	--and
 	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Receptacle)) --and Drone.allInstances().select(d| d.energy >= 1)
 
+-- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size=1
