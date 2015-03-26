@@ -142,4 +142,9 @@ context point:Point inv atMostOneDronePerReceptacle:
 		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	endif
 
+--context Drone inv droneHasChargeIfSimplePosition :
+	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse))
+	--and
+	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Receptacle)) --and Drone.allInstances().select(d| d.energy >= 1)
+
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size=1
