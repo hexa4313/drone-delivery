@@ -163,6 +163,21 @@ context Drone::recharge()
 	pre locationAllowCharging: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
 	post droneDoesnotMove: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
 
+
+-- ************ CONSTANTS ***********
+-- DNB
+context Drone inv dNB : Drone.allInstances -> size <= 3
+
+-- DCAP
+context Drone inv dCAP : self.capacity >= 0 and self.capacity <= 10
+
+-- RNB
+context Receptacle inv rNB : Receptacle.allInstances -> size <= 16
+
+-- RCAP
+context Receptacle inv rCAP : self.capacity >= 0 and self.capacity <= 30
+
+
 -- ************ INVARIANTS ***********
 
 -- ** The Battery level is always between 3 and 0
@@ -183,7 +198,7 @@ context point:Point inv atMostOneDronePerReceptacle:
 		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	endif
 
--- Transitive closure contains all receptacle
+-- a receptacle's transitive closure contains all receptacles
 context recep:Receptacle inv completeClosure :
 	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
