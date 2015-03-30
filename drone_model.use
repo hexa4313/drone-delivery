@@ -1,7 +1,7 @@
 model DroneDeliveryModel
 
 -- enumeration for states
-enum Drone_State {Charged, Delivering, Discharged}
+enum Drone_State {Charged, Delivering, Discharged, Returning}
 enum Receptacle_State {Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
@@ -29,12 +29,10 @@ class Drone
 			
 		end
 		deliver()
-		--pre droneIsCharged : self.capacity <> 0
-		--pre droneIsAtTheLocation : Receptacle.allInstances-> one(r | r.distance(self) =0) and not Warehouse.allInstances-> exists (w | w.distance(self)
 			begin
 				declare recep : Set(Receptacle);
 				-- fill current receptacle 
-				recep := Receptacle.allInstances().select( r | r.distanceDrone(self) = 0);
+				recep := Receptacle.allInstances().select( rec | rec.distanceDrone(self) = 0);
 				for r in recep do
 					r.capacity := r.capacity + self.capacity;
 				end;
@@ -135,8 +133,28 @@ association Crew between
 
 end
 
+
+
 -- ####### CONSTRAINTS  ##########
 constraints
+
+-- ********** PRE AND POST CONDITIONS ************
+
+context Drone::deliver()
+	pre isRightReceptacle : self.receptacle.x =self.position_drone.x and self.receptacle.y = self.position_drone.y
+	pre droneIsAtTheLocation : 
+		Receptacle.allInstances-> one(r | r.distanceDrone(self) =0) and not Warehouse.allInstances-> exists(w | w.distance(self.position_drone) =0)
+	pre droneContainsCmd : self.capacity <> 0
+	post droneHasDeliveredCmd : self.capacity = 0
+	post droneDoesnotMove : Receptacle.allInstances-> one(r | r.distanceDrone(self) =0) and 
+		not Warehouse.allInstances-> exists (w | w.distance(self.position_drone) =0)
+
+context Drone::recharge()
+	pre droneIsNotFull: self.energy < 3
+	pre locationAllowCharging: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
+	post droneDoesnotMove: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
+
+-- ************ INVARIANTS ***********
 
 -- ** The Battery level is always between 3 and 0
 context Drone inv batteryLevel : self.energy >= 0 and self.energy <= 3 
