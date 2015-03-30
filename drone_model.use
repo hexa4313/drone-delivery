@@ -19,7 +19,7 @@ class Drone
 				self.energy := self.energy + 1;
 				-- TODO test if energy <3 and maybe incremente time
 			end
-		move (newX : Integer, newY : Integer)
+		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 		begin
 			declare point : Point;
 			point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
@@ -139,6 +139,11 @@ end
 constraints
 
 -- ********** PRE AND POST CONDITIONS ************
+context Drone::move(newX : Integer, newY : Integer)
+	pre droneIsCharged : self.energy > 0
+	pre moveToNeighbour : (newX + newY).abs = 1
+	pre destinationIsFree : (Point.allInstances().select(p | p.x = self.position_drone.x + newX and p.y = self.position_drone.y + newY)->asSequence()->first().oclIsTypeOf(Warehouse)) or not Drone.allInstances -> exists(drone | drone.position_drone.x = self.position_drone.x + newX and drone.position_drone.y = self.position_drone.y + newY) 
+	post locationHasChanged : (self.position_drone <> self.position_drone@pre)
 
 context Drone::deliver()
 	pre isRightReceptacle : self.receptacle.x =self.position_drone.x and self.receptacle.y = self.position_drone.y
