@@ -104,7 +104,16 @@ class Command
 		 	end
 end
 
-class Grid end
+
+class Grid
+  attributes
+  	Length : Integer -- Length of a side of the square grid
+    RNB  : Integer -- Number of Receptacles 
+    RCAP : Integer -- Capacity of a receptacle
+    DNB  : Integer -- number of Drones
+    DCAP : Integer -- Capacity of a drone
+    NELEMNTS: Integer -- Number of elements to generate
+end
 
 association Owner between 
 	Warehouse[1] role warehouse;
@@ -165,17 +174,18 @@ context Drone::recharge()
 
 
 -- ************ CONSTANTS ***********
+-- Constants as invariants or as Grid attributes ??
 -- DNB
-context Drone inv dNB : Drone.allInstances -> size <= 3
+--context Drone inv dNB : Drone.allInstances -> size <= 3
 
 -- DCAP
-context Drone inv dCAP : self.capacity >= 0 and self.capacity <= 10
+--context Drone inv dCAP : self.capacity >= 0 and self.capacity <= 10
 
 -- RNB
-context Receptacle inv rNB : Receptacle.allInstances -> size <= 16
+--context Receptacle inv rNB : Receptacle.allInstances -> size <= 16
 
 -- RCAP
-context Receptacle inv rCAP : self.capacity >= 0 and self.capacity <= 30
+--context Receptacle inv rCAP : self.capacity >= 0 and self.capacity <= 30
 
 
 -- ************ INVARIANTS ***********
