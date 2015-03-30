@@ -69,6 +69,10 @@ class Receptacle < Point
         neighbours() : Set(Receptacle) =
             Receptacle.allInstances() -> select (n | distance(n) < 3)
 
+        -- Neighbours
+        neighboursClosure() : Set(Receptacle) =
+            self.neighbours() -> closure (r|r.neighbours())
+
         -- Set receptacles' states
         setFree()
 			begin
@@ -178,6 +182,10 @@ context point:Point inv atMostOneDronePerReceptacle:
 	else
 		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	endif
+
+-- Transitive closure contains all receptacle
+context recep:Receptacle inv completeClosure :
+	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
 --context Drone inv droneHasChargeIfSimplePosition :
 	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse))
