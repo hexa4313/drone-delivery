@@ -1,7 +1,7 @@
 model DroneDeliveryModel
 
 -- enumeration for states
-enum Drone_State {Charged, Delivering, Discharged, Returning}
+enum Drone_State {Parked, Delivering, Returning}
 enum Receptacle_State {Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
@@ -20,18 +20,17 @@ class Drone
 				-- TODO test if energy <3 and maybe incremente time
 			end
 		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
-		begin
-			declare point : Point;
-			point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
-			delete (self.position_drone, self) from Position; 
-			insert (point, self) into Position;
-			self.energy := self.energy -1;
-			
-		end
+			begin
+				declare point : Point;
+				point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
+				delete (self.position_drone, self) from Position; 
+				insert (point, self) into Position;
+				self.energy := self.energy -1;
+				
+			end
 		deliver()
 			begin
-				declare recep : Set(Receptacle);
-				-- fill current receptacle 
+				declare recep : Set(Receptacle); -- current receptacle
 				recep := Receptacle.allInstances().select( rec | rec.distanceDrone(self) = 0);
 				for r in recep do
 					r.capacity := r.capacity + self.capacity;
@@ -40,6 +39,14 @@ class Drone
 				self.capacity := 0;
 				delete (self.receptacle, self) from Delivery;
 			end
+		allocate(recep : Receptacle, cmd: Command)
+		begin
+			insert(recep, cmd) into Destination;
+			insert(recep, self) into Delivery;
+
+			--set charge
+			self.capacity := self.receptacle.cmd.weight;
+		end
 
 end
 
@@ -92,6 +99,7 @@ end
 class Command
 	attributes
 		state : Command_State init = Command_State::Created
+		weight : Integer -- temp (must be a Product attribute)
 
 	operations
 	 	assign()
@@ -107,6 +115,7 @@ end
 
 class Grid
   attributes
+  	Time : Integer init = 0 -- time
   	Length : Integer -- Length of a side of the square grid
     RNB  : Integer -- Number of Receptacles 
     RCAP : Integer -- Capacity of a receptacle
@@ -172,6 +181,12 @@ context Drone::recharge()
 	pre locationAllowCharging: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
 	post droneDoesnotMove: Receptacle.allInstances->exists (r | r.distanceDrone(self) =0)
 
+context Drone::allocate(recep : Receptacle, cmd: Command)
+	pre droneIsAtWarehouse : self.position_drone.oclIsTypeOf(Warehouse)
+	pre droneIsEmpty : self.capacity = 0
+	pre cmdHasProduct : cmd.weight > 0
+	post droneIsFilled : self.capacity = cmd.weight
+	post droneDoesnotMove : self.position_drone.oclIsTypeOf(Warehouse)
 
 -- ************ CONSTANTS ***********
 -- Constants as invariants or as Grid attributes ??
@@ -218,4 +233,4 @@ context recep:Receptacle inv completeClosure :
 	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Receptacle)) --and Drone.allInstances().select(d| d.energy >= 1)
 
 -- ** Only One Warehouse in the grid
-context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size=1
+context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
