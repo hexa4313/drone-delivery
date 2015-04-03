@@ -1,7 +1,13 @@
 model DroneDeliveryModel
 
 -- enumeration for states
-enum Drone_State {Parked, Delivering, Returning}
+enum Drone_State {Parked, Delivering, Charging, Unloading, Returning}
+-- Parked = drone init or drone in a warehouse
+-- Delivering = drone moving to a receptacle to deliver a cmd
+-- Charging = drone charging his battery
+-- Unloading = drone is at destination receptacle and is delivering cmd
+-- Returning = drone has delivered a cmd and is now returning to warehouse
+
 enum Receptacle_State {Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
@@ -40,13 +46,14 @@ class Drone
 				delete (self.receptacle, self) from Delivery;
 			end
 		allocate(recep : Receptacle, cmd: Command)
-		begin
-			insert(recep, cmd) into Destination;
-			insert(recep, self) into Delivery;
+			begin
+				insert(recep, cmd) into Destination;
+				insert(recep, self) into Delivery;
 
-			--set charge
-			self.capacity := self.receptacle.cmd.weight;
-		end
+				--set charge
+				self.capacity := self.receptacle.cmd.weight;
+			end
+
 
 end
 
