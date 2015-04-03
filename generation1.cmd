@@ -27,6 +27,7 @@ open drone_model.use
 
 !create d1 : Drone
 !create d2 : Drone
+!create d3 : Drone
 
 !create c1 : Command
 !create c2 : Command
@@ -77,16 +78,19 @@ open drone_model.use
 
 !insert (w, d1) into Crew
 !insert (w, d2) into Crew
+!insert (w, d3) into Crew
 
 
-!insert (d1,w) into Position
-!insert (d2,w) into Position
+!insert (w, d1) into Position
+!insert (w, d2) into Position
+!insert (w, d3) into Position
 
-!insert(c1, r1) into Destination
-!insert(c2, r2) into Destination
-!insert(c3, r3) into Destination
+!insert(r1, c1) into Destination
+!insert(r2, c2) into Destination
+!insert(r3, c3) into Destination
 
-!insert (d1, r1) into Delivery
-!insert (d2, r2) into Delivery
+!insert (r1, d1) into Delivery
+!insert (r2, d2) into Delivery
+!insert (r3, d3) into Delivery
 
 check
