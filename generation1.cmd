@@ -2,6 +2,13 @@ reset
 
 open model.use
 
+!create grid : Grid
+!set grid.RNB = 3
+!set grid.RCAP = 10
+!set grid.DNB = 2
+!set grid.DCAP = 7
+-- !set grid.NELEMNTS = 10
+
 !create w : Warehouse
 !set w.x := 0 
 !set w.y := 1
