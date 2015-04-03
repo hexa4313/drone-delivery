@@ -1,6 +1,6 @@
 reset
 
-open model.use
+open drone_model.use
 
 !create grid : Grid
 !set grid.RNB = 3
@@ -70,5 +70,23 @@ open model.use
 !set c2.weight :=4
 !set c3.weight :=2
 
+!insert(w, grid) into Owner
+!insert(r1, grid) into Location
+!insert(r2, grid) into Location
+!insert(r3, grid) into Location
+
+!insert (w, d1) into Crew
+!insert (w, d2) into Crew
+
+
+!insert (d1,w) into Position
+!insert (d2,w) into Position
+
+!insert(c1, r1) into Destination
+!insert(c2, r2) into Destination
+!insert(c3, r3) into Destination
+
+!insert (d1, r1) into Delivery
+!insert (d2, r2) into Delivery
 
 check
