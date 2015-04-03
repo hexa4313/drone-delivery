@@ -224,10 +224,12 @@ context pointA, pointB:Point inv allPointAreUnique :
 -- ** There is no 2 or more drones at the same receptacle
 context point:Point inv atMostOneDronePerReceptacle:
 	if not point.oclIsTypeOf(Warehouse) then
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+		Drone.allInstances().select(d|d.position_drone = point)->size() <= 1 
+		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
+		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	else
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+		Drone.allInstances().select(d|d.position_drone = point)->size() >= 0
+		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	endif
 
 -- a receptacle's transitive closure contains all receptacles
