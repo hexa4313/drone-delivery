@@ -8,7 +8,7 @@ model DroneDeliveryModel
 -- Unloading = drone is at destination receptacle and is delivering cmd
 -- Returning = drone has delivered a cmd and is now returning to warehouse
 
-enum Point_State {Free, Occupied}
+enum Point_State {Created, Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
 class Drone
@@ -160,6 +160,17 @@ class Command
 		 	begin
 		 		self.state := Command_State::Delivered
 		 	end
+
+		statemachines
+	        psm CommandStateMachine
+	        states
+	        	Created:initial
+	            Assigned
+	            Delivered
+	         transitions
+	            Created -> Assigned {assign()}
+	            Assigned -> Delivered {deliver()}
+    	end
 end
 
 
