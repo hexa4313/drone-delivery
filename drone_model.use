@@ -1,20 +1,21 @@
 model DroneDeliveryModel
 
 -- enumeration for states
-enum Drone_State {Parked, Delivering, Charging, Unloading, Returning}
+--enum Drone_State {Parked, Delivering, Charging, Unloading, Returning}
 -- Parked = drone init or drone in a warehouse
 -- Delivering = drone moving to a receptacle to deliver a cmd
 -- Charging = drone charging his battery
 -- Unloading = drone is at destination receptacle and is delivering cmd
 -- Returning = drone has delivered a cmd and is now returning to warehouse
 
-enum Receptacle_State {Free, Occupied}
+enum Point_State {Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
 class Drone
 	attributes
 		capacity : Integer init = 0
 		energy : Integer init = 3
+		state : Point_State init = Point_State::Free 
 
 	operations
 
@@ -29,6 +30,9 @@ class Drone
 			begin
 				declare point : Point;
 				point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
+				--if not point.oclIsTypeOf(Warehouse) then point.setOccupied()
+				--else self.
+				--endif
 				delete (self.position_drone, self) from Position; 
 				insert (point, self) into Position;
 				self.energy := self.energy -1;
@@ -53,6 +57,32 @@ class Drone
 				--set charge
 				self.capacity := self.receptacle.cmd.weight;
 			end
+		finish()
+			begin
+				
+			end
+		statemachines
+		psm DroneStateMachine
+			states
+				Created:initial
+				Parked
+				Delivering
+				Charging
+				Unloading
+				Returning
+			transitions
+				Created -> Parked { create }
+				Parked -> Delivering { allocate() }
+				Delivering -> Delivering { move() }
+				Delivering -> Charging { recharge() }
+				Delivering -> Unloading { deliver() }
+				Unloading -> Returning { move() }
+				Returning -> Charging { recharge() }
+				Charging -> Charging { recharge() }
+				Returning -> Parked { finish() }
+				Charging -> Unloading { deliver() }
+				Unloading -> Charging { recharge() }
+		end
 
 
 end
@@ -60,11 +90,22 @@ end
 class Point 
 	attributes 
 		x : Integer
-		y : Integer	
+		y : Integer
+		state : Point_State init = Point_State::Free
 	operations
 		-- Manhattan distance between two points 
 		distance(dest : Point ) : Integer =
 			(self.x - dest.x).abs + (self.y - dest.y).abs
+
+		-- Set point's states
+        setFree()
+			begin
+				self.state := Point_State::Free;
+			end
+        setOccupied()
+	    	begin
+	    		self.state := Point_State::Occupied;
+			end
 
 		-- check if there is a receptacle or a warehouse in the current point
 		
@@ -76,7 +117,6 @@ class Warehouse < Point end
 class Receptacle < Point
     attributes
         capacity : Integer init = 0
-        state : Receptacle_State init = Receptacle_State::Free
 
     operations 
     	-- All neighbours 
@@ -86,16 +126,6 @@ class Receptacle < Point
         -- Neighbours
         neighboursClosure() : Set(Receptacle) =
             self.neighbours() -> closure (r|r.neighbours())
-
-        -- Set receptacles' states
-        setFree()
-			begin
-				self.state := Receptacle_State::Free;
-			end
-        setOccupied()
-	    	begin
-	    		self.state := Receptacle_State::Occupied;
-			end
 
 		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
@@ -129,6 +159,12 @@ class Grid
     DNB  : Integer -- number of Drones
     DCAP : Integer -- Capacity of a drone
     NELEMNTS: Integer -- Number of elements to generate
+
+    operations
+    	tick()
+    		begin
+    			--Drone.allInstances().select(d| if d.capacity > 0 then d.move() )
+    		end
 end
 
 association Owner between 
@@ -216,10 +252,9 @@ context Drone::allocate(recep : Receptacle, cmd: Command)
 context Drone inv batteryLevel : self.energy >= 0 and self.energy <= 3 
 
 -- ** Every Point is Unique
-context pointA, pointB:Point inv allPointAreUnique : 
-	 (pointA.x = pointB.x) and 
-	 (pointA.y = pointB.y)
-	 implies pointA = pointB
+context point:Point inv everyPointIsUniqueAndBelongToGrid : 
+	Point.allInstances().select(p|p = point)->size() = 1 
+	 
 
 -- ** There is no 2 or more drones at the same receptacle
 context point:Point inv atMostOneDronePerReceptacle:
