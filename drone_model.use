@@ -62,26 +62,26 @@ class Drone
 				
 			end
 		statemachines
-		psm DroneStateMachine
-			states
-				Created:initial
-				Parked
-				Delivering
-				Charging
-				Unloading
-				Returning
-			transitions
-				Created -> Parked { create }
-				Parked -> Delivering { allocate() }
-				Delivering -> Delivering { move() }
-				Delivering -> Charging { recharge() }
-				Delivering -> Unloading { deliver() }
-				Unloading -> Returning { move() }
-				Returning -> Charging { recharge() }
-				Charging -> Charging { recharge() }
-				Returning -> Parked { finish() }
-				Charging -> Unloading { deliver() }
-				Unloading -> Charging { recharge() }
+			psm DroneStateMachine
+				states
+					Created:initial
+					Parked
+					Delivering
+					Charging
+					Unloading
+					Returning
+				transitions
+					Created -> Parked { create }
+					Parked -> Delivering { allocate() }
+					Delivering -> Delivering { move() }
+					Delivering -> Charging { recharge() }
+					Delivering -> Unloading { deliver() }
+					Unloading -> Returning { move() }
+					Returning -> Charging { recharge() }
+					Charging -> Charging { recharge() }
+					Returning -> Parked { finish() }
+					Charging -> Unloading { deliver() }
+					Unloading -> Charging { recharge() }
 		end
 
 
@@ -130,6 +130,19 @@ class Receptacle < Point
 		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
             (self.x-d.position_drone.x).abs + (self.y-d.position_drone.y).abs
+
+        statemachines
+	        psm ReceptacleStateMachine
+	        states
+	        	Created:initial
+	            Free
+	            Occupied
+	            --Full
+	         transitions
+	         	Created -> Free { create }
+	            Free -> Occupied {[Drone.allInstances()->one(d | distanceDrone(d) = 0)] setOccupied()}
+	            Occupied -> Free {[Drone.allInstances()->forAll(d | distanceDrone(d) <> 0)] setFree()}
+    	end
 		
 end
 
