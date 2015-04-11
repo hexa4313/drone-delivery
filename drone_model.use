@@ -295,8 +295,13 @@ context point:Point inv atMostOneDronePerReceptacle:
 context recep:Receptacle inv completeClosure :
 	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
+-- Every drone in a simple point (not receptacle or warehouse) must have charge
 context Drone inv droneHasChargeIfSimplePosition :
 	Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse) and d.position_drone.oclIsTypeOf(Receptacle) and d.energy < 1)->size() = 0
+
+-- A command should be deliver to a Receptacle point
+context Command inv commandForReceptaclePosition :
+	Command.allInstances().select(c| not c.receptacle.oclIsTypeOf(Receptacle))->size() = 0
 
 -- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
