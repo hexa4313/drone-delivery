@@ -7,15 +7,15 @@ bool D [nbProc];
 //Fonction lancé par chaque drône pour savoir qui va passer à l'action
 proctype P(bool d) {
 	// Initialisation du booléen de ce processus
-    D[_pid] = d;
+    	D[_pid - 1] = d;
 	bool Y;
-	assert (D[_pid] == d); 		// Vérifie que le booléen du processus a toujours la même valeur qu'à l'initial.
+	assert (D[_pid - 1] == d); 		// Vérifie que le booléen du processus a toujours la même valeur qu'à l'initial.
 	e = _pid;
 	d = true;
 	Y = (e == _pid);
     //Insérer dans l'assertion suivante la condition d'attente dont parlait le prof la dernière fois
     //If avec un skip si on a pas ce qu'on veut, sinon on effectue l'action
-    if :: e != _pid || D[_pid] != d -> skip;
+    if :: e != _pid || D[_pid - 1] != d -> skip;
        :: else -> assert ( Y == ( e == _pid ) );
     fi
 }
