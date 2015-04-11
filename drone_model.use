@@ -60,6 +60,10 @@ class Drone
 				--set charge
 				self.capacity := self.receptacle.cmd.weight;
 			end
+		tick()
+    		begin
+    		--
+    		end
 		finish()
 			begin
 				
@@ -180,17 +184,20 @@ end
 class Grid
   attributes
   	Time : Integer init = 0 -- time
-  	Length : Integer init = 3 -- Length of a side of the square grid
-    RNB  : Integer init = 5  -- Number of Receptacles 
-    RCAP : Integer init = 10 -- Capacity of a receptacle
-    DNB  : Integer init = 5-- number of Drones
-    DCAP : Integer init = 10 -- Capacity of a drone
-    NELEMNTS: Integer init = 0-- Number of elements to generate
+  	Length : Integer -- Length of a side of the square grid
+    RNB  : Integer -- Number of Receptacles 
+    RCAP : Integer -- Capacity of a receptacle
+    DNB  : Integer -- number of Drones
+    DCAP : Integer -- Capacity of a drone
+    NELEMNTS: Integer -- Number of elements to generate
 
     operations
-    	tick()
+    	tick() -- TODO : when can we consider that all objects have finished their operations and we can send the following tick ??
     		begin
-    			--Drone.allInstances().select(d| if d.capacity > 0 then d.move() )
+    			self.Time := self.Time + 1;
+    			for d in self.warehouse.drones do
+					d.tick();
+				end;
     		end
 end
 
@@ -303,7 +310,7 @@ context Grid inv dcap :
 
 -- RNB
 context Grid inv rnb : 
-	 self.RNB >= 0 
+	 self.RNB >= self.receptacles->size() 
 
 -- RCAP
 context Grid inv rcap : 
