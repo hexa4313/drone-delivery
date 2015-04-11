@@ -25,6 +25,11 @@ class Drone
 			begin
 				self.energy := self.energy + 1;
 			end
+		shift()
+			begin
+			    -- find the right position to move to
+				--self.position_drone.neighbours()->select
+			end
 		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 			begin
 				declare point : Point;
@@ -65,34 +70,23 @@ class Drone
     			if self.drone_position.oclIsTypeOf(Receptacle) then
     				-- to destination
     				if self.drone_position = self.receptacle then
-    					if self.energy >= 1 then
-    						self.deliver()
-    					else
-    						self.recharge()
-    					endif
+    					if self.energy >= 1 then self.deliver()
+    					else self.recharge() endif
+
     				-- not the destination receptacle
     				else
-    					if self.energy <= 1 then
-    						self.recharge()
-    					else 
-    						-- replace with shift
-    						self.move(0,0)
-    					endif 
+    					if self.energy <= 1 then self.recharge()
+    					else self.shift() endif 
     				endif
 
 				else 
 					-- at warehouse
 					if self.drone_position.oclIsTypeOf(Warehouse) then
-						if self.energy < 3 then
-							self.recharge()
-						else
-							self.move(0,0)
-						endif
+						if self.energy < 3 then self.recharge()
+						else self.shift() endif
 
 					-- at a simple point
-					else
-						self.move(0,0)
-					endif
+					else self.shift() endif
 				endif
     		end
 		finish()
@@ -136,6 +130,8 @@ class Point
 		distance(dest : Point ) : Integer =
 			(self.x - dest.x).abs + (self.y - dest.y).abs
 
+		neighbours() : Set(Point) =
+            Point.allInstances()->select(p | self.distance(p) = 1)
 		-- Set point's states
         setFree()
 			begin
@@ -159,12 +155,12 @@ class Receptacle < Point
 
     operations 
     	-- All neighbours 
-        neighbours() : Set(Receptacle) =
-            Receptacle.allInstances() -> select (n | distance(n) < 3)
+        neighboursRecept() : Set(Receptacle) =
+            Receptacle.allInstances()-> select (n | distance(n) < 3)
 
         -- Neighbours
         neighboursClosure() : Set(Receptacle) =
-            self.neighbours() -> closure (r|r.neighbours())
+            self.neighboursRecept() -> closure (r|r.neighboursRecept())
 
 		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
