@@ -1,7 +1,7 @@
 model DroneDeliveryModel
 
 -- enumeration for states
---enum Drone_State {Parked, Delivering, Charging, Unloading, Returning}
+enum Drone_State {Created, Parked, Delivering, Charging, Unloading, Returning}
 -- Parked = drone init or drone in a warehouse
 -- Delivering = drone moving to a receptacle to deliver a cmd
 -- Charging = drone charging his battery
@@ -15,7 +15,7 @@ class Drone
 	attributes
 		capacity : Integer init = 0
 		energy : Integer init = 3
-		state : Point_State init = Point_State::Free 
+		--state : Drone_State init = Drone_State::Parked 
 
 	operations
 
@@ -24,7 +24,6 @@ class Drone
 		recharge ()
 			begin
 				self.energy := self.energy + 1;
-				-- TODO test if energy <3 and maybe incremente time
 			end
 		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 			begin
@@ -62,7 +61,39 @@ class Drone
 			end
 		tick()
     		begin
-    		--
+    			-- at receptacle
+    			if self.drone_position.oclIsTypeOf(Receptacle) then
+    				-- to destination
+    				if self.drone_position = self.receptacle then
+    					if self.energy >= 1 then
+    						self.deliver()
+    					else
+    						self.recharge()
+    					endif
+    				-- not the destination receptacle
+    				else
+    					if self.energy <= 1 then
+    						self.recharge()
+    					else 
+    						-- replace with shift
+    						self.move(0,0)
+    					endif 
+    				endif
+
+				else 
+					-- at warehouse
+					if self.drone_position.oclIsTypeOf(Warehouse) then
+						if self.energy < 3 then
+							self.recharge()
+						else
+							self.move(0,0)
+						endif
+
+					-- at a simple point
+					else
+						self.move(0,0)
+					endif
+				endif
     		end
 		finish()
 			begin
@@ -89,6 +120,7 @@ class Drone
 					Returning -> Parked { finish() }
 					Charging -> Unloading { deliver() }
 					Unloading -> Charging { recharge() }
+					Returning -> Parked { finish() }
 		end
 
 
