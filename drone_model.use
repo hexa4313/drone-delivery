@@ -44,9 +44,12 @@ class Drone
 				recep := Receptacle.allInstances().select( rec | rec.distanceDrone(self) = 0);
 				for r in recep do
 					r.capacity := r.capacity + self.capacity;
+					r.cmd.deliver();
+					delete(r, r.cmd) from Destination;
 				end;
 
 				self.capacity := 0;
+
 				delete (self.receptacle, self) from Delivery;
 			end
 		allocate(recep : Receptacle, cmd: Command)
@@ -284,21 +287,16 @@ context point:Point inv everyPointIsUniqueAndBelongToGrid :
 context point:Point inv atMostOneDronePerReceptacle:
 	if not point.oclIsTypeOf(Warehouse) then
 		Drone.allInstances().select(d|d.position_drone = point)->size() <= 1 
-		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
-		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	else
 		Drone.allInstances().select(d|d.position_drone = point)->size() >= 0
-		--Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
 	endif
 
 -- a receptacle's transitive closure contains all receptacles
 context recep:Receptacle inv completeClosure :
 	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
---context Drone inv droneHasChargeIfSimplePosition :
-	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse))
-	--and
-	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Receptacle)) --and Drone.allInstances().select(d| d.energy >= 1)
+context Drone inv droneHasChargeIfSimplePosition :
+	Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse) and d.position_drone.oclIsTypeOf(Receptacle) and d.energy < 1)->size() = 0
 
 -- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
