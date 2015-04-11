@@ -1,14 +1,21 @@
 model DroneDeliveryModel
 
 -- enumeration for states
-enum Drone_State {Parked, Delivering, Returning}
-enum Receptacle_State {Free, Occupied}
+enum Drone_State {Created, Parked, Delivering, Charging, Unloading, Returning}
+-- Parked = drone init or drone in a warehouse
+-- Delivering = drone moving to a receptacle to deliver a cmd
+-- Charging = drone charging his battery
+-- Unloading = drone is at destination receptacle and is delivering cmd
+-- Returning = drone has delivered a cmd and is now returning to warehouse
+
+enum Point_State {Created, Free, Occupied}
 enum Command_State {Created, Assigned, Delivered}
 
 class Drone
 	attributes
 		capacity : Integer init = 0
 		energy : Integer init = 3
+		--state : Drone_State init = Drone_State::Parked 
 
 	operations
 
@@ -17,12 +24,19 @@ class Drone
 		recharge ()
 			begin
 				self.energy := self.energy + 1;
-				-- TODO test if energy <3 and maybe incremente time
+			end
+		shift()
+			begin
+			    -- find the right position to move to
+				--self.position_drone.neighbours()->select
 			end
 		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 			begin
 				declare point : Point;
 				point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
+				--if not point.oclIsTypeOf(Warehouse) then point.setOccupied()
+				--else self.
+				--endif
 				delete (self.position_drone, self) from Position; 
 				insert (point, self) into Position;
 				self.energy := self.energy -1;
@@ -34,30 +48,99 @@ class Drone
 				recep := Receptacle.allInstances().select( rec | rec.distanceDrone(self) = 0);
 				for r in recep do
 					r.capacity := r.capacity + self.capacity;
+					r.cmd.deliver();
+					delete(r, r.cmd) from Destination;
 				end;
 
 				self.capacity := 0;
+
 				delete (self.receptacle, self) from Delivery;
 			end
 		allocate(recep : Receptacle, cmd: Command)
-		begin
-			insert(recep, cmd) into Destination;
-			insert(recep, self) into Delivery;
+			begin
+				insert(recep, cmd) into Destination;
+				insert(recep, self) into Delivery;
 
-			--set charge
-			self.capacity := self.receptacle.cmd.weight;
+				--set charge
+				self.capacity := self.receptacle.cmd.weight;
+			end
+		tick()
+    		begin
+    			-- at receptacle
+    			if self.drone_position.oclIsTypeOf(Receptacle) then
+    				-- to destination
+    				if self.drone_position = self.receptacle then
+    					if self.energy >= 1 then self.deliver()
+    					else self.recharge() endif
+
+    				-- not the destination receptacle
+    				else
+    					if self.energy <= 1 then self.recharge()
+    					else self.shift() endif 
+    				endif
+
+				else 
+					-- at warehouse
+					if self.drone_position.oclIsTypeOf(Warehouse) then
+						if self.energy < 3 then self.recharge()
+						else self.shift() endif
+
+					-- at a simple point
+					else self.shift() endif
+				endif
+    		end
+		finish()
+			begin
+				
+			end
+		statemachines
+			psm DroneStateMachine
+				states
+					Created:initial
+					Parked
+					Delivering
+					Charging
+					Unloading
+					Returning
+				transitions
+					Created -> Parked { create }
+					Parked -> Delivering { allocate() }
+					Delivering -> Delivering { move() }
+					Delivering -> Charging { recharge() }
+					Delivering -> Unloading { deliver() }
+					Unloading -> Returning { move() }
+					Returning -> Charging { recharge() }
+					Charging -> Charging { recharge() }
+					Returning -> Parked { finish() }
+					Charging -> Unloading { deliver() }
+					Unloading -> Charging { recharge() }
+					Returning -> Parked { finish() }
 		end
+
 
 end
 
 class Point 
 	attributes 
 		x : Integer
-		y : Integer	
+		y : Integer
+		state : Point_State init = Point_State::Free
 	operations
 		-- Manhattan distance between two points 
 		distance(dest : Point ) : Integer =
 			(self.x - dest.x).abs + (self.y - dest.y).abs
+
+		neighbours() : Set(Point) =
+            Point.allInstances()->select(p | self.distance(p) = 1)
+		-- Set point's states
+        setFree()
+			begin
+				self.state := Point_State::Free;
+			end
+        setOccupied()
+	    	begin
+	    		self.state := Point_State::Occupied;
+			end
 
 		-- check if there is a receptacle or a warehouse in the current point
 		
@@ -69,30 +152,32 @@ class Warehouse < Point end
 class Receptacle < Point
     attributes
         capacity : Integer init = 0
-        state : Receptacle_State init = Receptacle_State::Free
 
     operations 
     	-- All neighbours 
-        neighbours() : Set(Receptacle) =
-            Receptacle.allInstances() -> select (n | distance(n) < 3)
+        neighboursRecept() : Set(Receptacle) =
+            Receptacle.allInstances()-> select (n | distance(n) < 3)
 
         -- Neighbours
         neighboursClosure() : Set(Receptacle) =
-            self.neighbours() -> closure (r|r.neighbours())
-
-        -- Set receptacles' states
-        setFree()
-			begin
-				self.state := Receptacle_State::Free;
-			end
-        setOccupied()
-	    	begin
-	    		self.state := Receptacle_State::Occupied;
-			end
+            self.neighboursRecept() -> closure (r|r.neighboursRecept())
 
 		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
             (self.x-d.position_drone.x).abs + (self.y-d.position_drone.y).abs
+
+        statemachines
+	        psm ReceptacleStateMachine
+	        states
+	        	Created:initial
+	            Free
+	            Occupied
+	            --Full
+	         transitions
+	         	Created -> Free { create }
+	            Free -> Occupied {[Drone.allInstances()->one(d | distanceDrone(d) = 0)] setOccupied()}
+	            Occupied -> Free {[Drone.allInstances()->forAll(d | distanceDrone(d) <> 0)] setFree()}
+    	end
 		
 end
 
@@ -110,6 +195,17 @@ class Command
 		 	begin
 		 		self.state := Command_State::Delivered
 		 	end
+
+		statemachines
+	        psm CommandStateMachine
+	        states
+	        	Created:initial
+	            Assigned
+	            Delivered
+	         transitions
+	            Created -> Assigned {assign()}
+	            Assigned -> Delivered {deliver()}
+    	end
 end
 
 
@@ -122,6 +218,15 @@ class Grid
     DNB  : Integer -- number of Drones
     DCAP : Integer -- Capacity of a drone
     NELEMNTS: Integer -- Number of elements to generate
+
+    operations
+    	tick() -- TODO : when can we consider that all objects have finished their operations and we can send the following tick ??
+    		begin
+    			self.Time := self.Time + 1;
+    			for d in self.warehouse.drones do
+					d.tick();
+				end;
+    		end
 end
 
 association Owner between 
@@ -188,19 +293,6 @@ context Drone::allocate(recep : Receptacle, cmd: Command)
 	post droneIsFilled : self.capacity = cmd.weight
 	post droneDoesnotMove : self.position_drone.oclIsTypeOf(Warehouse)
 
--- ************ CONSTANTS ***********
--- Constants as invariants or as Grid attributes ??
--- DNB
---context Drone inv dNB : Drone.allInstances -> size <= 3
-
--- DCAP
---context Drone inv dCAP : self.capacity >= 0 and self.capacity <= 10
-
--- RNB
---context Receptacle inv rNB : Receptacle.allInstances -> size <= 16
-
--- RCAP
---context Receptacle inv rCAP : self.capacity >= 0 and self.capacity <= 30
 
 
 -- ************ INVARIANTS ***********
@@ -209,28 +301,46 @@ context Drone::allocate(recep : Receptacle, cmd: Command)
 context Drone inv batteryLevel : self.energy >= 0 and self.energy <= 3 
 
 -- ** Every Point is Unique
-context pointA, pointB:Point inv allPointAreUnique : 
-	 (pointA.x = pointB.x) and 
-	 (pointA.y = pointB.y)
-	 implies pointA = pointB
+context point:Point inv everyPointIsUniqueAndBelongToGrid : 
+	Point.allInstances().select(p|p = point)->size() = 1 
+	 
 
 -- ** There is no 2 or more drones at the same receptacle
 context point:Point inv atMostOneDronePerReceptacle:
 	if not point.oclIsTypeOf(Warehouse) then
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() <= 1 and
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+		Drone.allInstances().select(d|d.position_drone = point)->size() <= 1 
 	else
-		Drone.allInstances().select(d|d.distancePoint(point) = 0)->size() >= 0
+		Drone.allInstances().select(d|d.position_drone = point)->size() >= 0
 	endif
 
 -- a receptacle's transitive closure contains all receptacles
 context recep:Receptacle inv completeClosure :
 	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
---context Drone inv droneHasChargeIfSimplePosition :
-	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse))
-	--and
-	--Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Receptacle)) --and Drone.allInstances().select(d| d.energy >= 1)
+-- Every drone in a simple point (not receptacle or warehouse) must have charge
+context Drone inv droneHasChargeIfSimplePosition :
+	Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse) and d.position_drone.oclIsTypeOf(Receptacle) and d.energy < 1)->size() = 0
+
+-- A command should be deliver to a Receptacle point
+context Command inv commandForReceptaclePosition :
+	Command.allInstances().select(c| not c.receptacle.oclIsTypeOf(Receptacle))->size() = 0
 
 -- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
+
+-- DNB
+context Grid inv dnb : 
+	self.DNB >= self.warehouse.drones->size()
+
+-- DCAP
+context Grid inv dcap : 
+	Drone.allInstances().select(d| d.capacity > self.DCAP)->size() = 0 
+
+-- RNB
+context Grid inv rnb : 
+	 self.RNB >= self.receptacles->size() 
+
+-- RCAP
+context Grid inv rcap : 
+	Receptacle.allInstances().select(r| r.capacity > self.RCAP)->size() = 0 
+
