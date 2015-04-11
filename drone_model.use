@@ -180,12 +180,12 @@ end
 class Grid
   attributes
   	Time : Integer init = 0 -- time
-  	Length : Integer -- Length of a side of the square grid
-    RNB  : Integer -- Number of Receptacles 
-    RCAP : Integer -- Capacity of a receptacle
-    DNB  : Integer -- number of Drones
-    DCAP : Integer -- Capacity of a drone
-    NELEMNTS: Integer -- Number of elements to generate
+  	Length : Integer init = 3 -- Length of a side of the square grid
+    RNB  : Integer init = 5  -- Number of Receptacles 
+    RCAP : Integer init = 10 -- Capacity of a receptacle
+    DNB  : Integer init = 5-- number of Drones
+    DCAP : Integer init = 10 -- Capacity of a drone
+    NELEMNTS: Integer init = 0-- Number of elements to generate
 
     operations
     	tick()
@@ -258,19 +258,6 @@ context Drone::allocate(recep : Receptacle, cmd: Command)
 	post droneIsFilled : self.capacity = cmd.weight
 	post droneDoesnotMove : self.position_drone.oclIsTypeOf(Warehouse)
 
--- ************ CONSTANTS ***********
--- Constants as invariants or as Grid attributes ??
--- DNB
---context Drone inv dNB : Drone.allInstances -> size <= 3
-
--- DCAP
---context Drone inv dCAP : self.capacity >= 0 and self.capacity <= 10
-
--- RNB
---context Receptacle inv rNB : Receptacle.allInstances -> size <= 16
-
--- RCAP
---context Receptacle inv rCAP : self.capacity >= 0 and self.capacity <= 30
 
 
 -- ************ INVARIANTS ***********
@@ -305,3 +292,20 @@ context Command inv commandForReceptaclePosition :
 
 -- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
+
+-- DNB
+context Grid inv dnb : 
+	self.DNB >= self.warehouse.drones->size()
+
+-- DCAP
+context Grid inv dcap : 
+	Drone.allInstances().select(d| d.capacity > self.DCAP)->size() = 0 
+
+-- RNB
+context Grid inv rnb : 
+	 self.RNB >= 0 
+
+-- RCAP
+context Grid inv rcap : 
+	Receptacle.allInstances().select(r| r.capacity > self.RCAP)->size() = 0 
+
