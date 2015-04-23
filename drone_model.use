@@ -32,21 +32,20 @@ class Drone
 			end
 		shift() -- find the right position to move to
 			begin
-				declare point_dest : Point, distance_toDest : Integer;
+				declare point_dest : Point, distance_toDest : Integer, newX : Integer, newY : Integer;
 				distance_toDest := self.distancePoint(self.destination_point);
 
 				// TODO improve the algo (occupation !!)
-				point_dest := self.position_drone.neighbours().select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
+				-- .select(p | p.distance(self.destination_point) < distance_toDest)
+				point_dest := self.position_drone.neighbours()->asSequence->first();
 
 			   // shift  = point_dest.x - self.position_drone.x ...
-			   self.move(point_dest.x - self.position_drone.x, point_dest.y - self.position_drone.y);
+			   self.move(point_dest);
 			end
-		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
+		move (point : Point) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 			begin
-				declare point : Point;
-				point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
-				
 				point.setOccupied(); -- verify if it's not the WH ?
+				self.position_drone.setFree();
 				delete (self.position_drone, self) from Position; 
 				insert (point, self) into Position;
 				
@@ -92,10 +91,10 @@ class Drone
 				transitions
 					Created -> Parked { create }
 					Parked -> Delivering { allocate() }
-					Delivering -> Delivering { move() }
+					Delivering -> Delivering { shift() }
 					Delivering -> Charging { recharge() }
 					Delivering -> Unloading { deliver() }
-					Unloading -> Returning { move() }
+					Unloading -> Returning { shift() }
 					Returning -> Charging { recharge() }
 					Charging -> Charging { recharge() }
 					Returning -> Parked { finish() }
@@ -280,10 +279,10 @@ constraints
 
 -- ********** PRE AND POST CONDITIONS ************
 
-context Drone::move(newX : Integer, newY : Integer)
+context Drone::move(point : Point)
 	pre droneIsCharged : self.energy > 0
-	pre moveToNeighbour : (newX + newY).abs = 1
-	pre destinationIsFree : (Point.allInstances().select(p | p.x = self.position_drone.x + newX and p.y = self.position_drone.y + newY)->asSequence()->first().oclIsTypeOf(Warehouse)) or not Drone.allInstances->exists(drone | drone.position_drone.x = self.position_drone.x + newX and drone.position_drone.y = self.position_drone.y + newY) 
+	pre moveToNeighbour : ((point.x - self.position_drone.x) + (point.y - self.position_drone.y)).abs = 1
+	pre destinationIsFree : point.oclIsTypeOf(Warehouse) or not Drone.allInstances->exists(drone | drone.position_drone.x = point.x and drone.position_drone.y = point.y) 
 	post locationHasChanged : (self.position_drone <> self.position_drone@pre)
 
 context Drone::deliver()

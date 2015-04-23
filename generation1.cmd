@@ -72,6 +72,7 @@ open drone_model.use
 !set c3.weight :=2
 
 !insert(w, grid) into Owner
+
 !insert(r1, grid) into Location
 !insert(r2, grid) into Location
 !insert(r3, grid) into Location
@@ -85,15 +86,16 @@ open drone_model.use
 !insert (w, d2) into Position
 !insert (w, d3) into Position
 
-!insert(r1, c1) into Destination
-!insert(r2, c2) into Destination
-!insert(r3, c3) into Destination
-
-!insert (r1, d1) into Delivery
-!insert (r2, d2) into Delivery
-!insert (r3, d3) into Delivery
 
 
---!d1.move(0,-1)
---!d2.move(1, 1);
+-- allocate commande
+!d1.allocate(r1, c1);
+!d2.allocate(r2, c2);
+!d3.allocate(r3, c3);
+
+check 
+!grid.tick();
+check
+
+!grid.tick();
 check
