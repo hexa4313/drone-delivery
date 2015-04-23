@@ -15,6 +15,11 @@ class Drone
 	attributes
 		capacity : Integer init = 0
 		energy : Integer init = 3
+		destination_point : Point -- needed by shift()
+			derive : 
+			if self.capacity > 0 then self.receptacle
+			else self.warehouse endif
+
 		--state : Drone_State init = Drone_State::Parked 
 
 	operations
@@ -25,20 +30,26 @@ class Drone
 			begin
 				self.energy := self.energy + 1;
 			end
-		shift()
+		shift() -- find the right position to move to
 			begin
-			    -- find the right position to move to
-				--self.position_drone.neighbours()->select
+				declare point_dest : Point, distance_toDest : Integer;
+				distance_toDest := self.distancePoint(self.destination_point);
+
+				// TODO improve the algo (occupation !!)
+				point_dest := self.position_drone.neighbours().select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
+
+			   // shift  = point_dest.x - self.position_drone.x ...
+			   self.move(point_dest.x - self.position_drone.x, point_dest.y - self.position_drone.y);
 			end
 		move (newX : Integer, newY : Integer) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
 			begin
 				declare point : Point;
 				point := Point.allInstances().select(point | point.x = self.position_drone.x + newX and point.y = self.position_drone.y + newY)->asSequence()->first();
-				--if not point.oclIsTypeOf(Warehouse) then point.setOccupied()
-				--else self.
-				--endif
+				
+				point.setOccupied(); -- verify if it's not the WH ?
 				delete (self.position_drone, self) from Position; 
 				insert (point, self) into Position;
+				
 				self.energy := self.energy -1;
 				
 			end
@@ -53,6 +64,7 @@ class Drone
 				end;
 
 				self.capacity := 0;
+				self.energy := self.energy - 1;
 
 				delete (self.receptacle, self) from Delivery;
 			end
@@ -64,32 +76,7 @@ class Drone
 				--set charge
 				self.capacity := self.receptacle.cmd.weight;
 			end
-		tick()
-    		begin
-    			-- at receptacle
-    			if self.drone_position.oclIsTypeOf(Receptacle) then
-    				-- to destination
-    				if self.drone_position = self.receptacle then
-    					if self.energy >= 1 then self.deliver()
-    					else self.recharge() endif
-
-    				-- not the destination receptacle
-    				else
-    					if self.energy <= 1 then self.recharge()
-    					else self.shift() endif 
-    				endif
-
-				else 
-					-- at warehouse
-					if self.drone_position.oclIsTypeOf(Warehouse) then
-						if self.energy < 3 then self.recharge()
-						else self.shift() endif
-
-					-- at a simple point
-					else self.shift() endif
-				endif
-    		end
-		finish()
+		finish() 
 			begin
 				
 			end
@@ -166,6 +153,9 @@ class Receptacle < Point
 		distanceDrone(d : Drone) : Integer =
             (self.x-d.position_drone.x).abs + (self.y-d.position_drone.y).abs
 
+        distancePoint(p : Point) : Integer = 
+        	(self.x- p.x).abs + (self.y- p.y).abs
+
         statemachines
 	        psm ReceptacleStateMachine
 	        states
@@ -222,10 +212,32 @@ class Grid
     operations
     	tick() -- TODO : when can we consider that all objects have finished their operations and we can send the following tick ??
     		begin
-    			self.Time := self.Time + 1;
-    			for d in self.warehouse.drones do
-					d.tick();
+    			--self.Time := self.Time + 1;
+    			declare drones_torecharge : Set(Drone), drones_todeliver :  Set(Drone),drones_tomove :  Set(Drone), tmp : Boolean;
+
+    			drones_torecharge := Drone.allInstances().select(d | d.capacity > 0  and d.receptacle.distancePoint(d.position_drone) = 0);
+    			drones_todeliver := Drone.allInstances().select(d | d.energy <= 1 and (d.position_drone.oclIsTypeOf(Receptacle) or 
+    			d.position_drone.oclIsTypeOf(Warehouse))); -- exclude drones_torecharge 
+    			drones_tomove := Drone.allInstances(); -- exclude the 2 prec collections
+
+    			-- recharge drones which need to be 
+
+    			for dc in drones_torecharge do
+					dc.recharge();
+					tmp := drones_todeliver->excluding(dc)->isEmpty() and drones_tomove->excluding(dc)->isEmpty();
 				end;
+
+				-- deliver command for drones which have to
+    			for dd in drones_todeliver do
+					dd.deliver();
+					tmp := drones_tomove->excluding(dd)->isEmpty();
+				end;
+
+				-- move drones which must be
+    			for dm in drones_tomove do
+					dm.shift();
+				end;
+
     		end
 end
 
@@ -265,11 +277,13 @@ end
 -- ####### CONSTRAINTS  ##########
 constraints
 
+
 -- ********** PRE AND POST CONDITIONS ************
+
 context Drone::move(newX : Integer, newY : Integer)
 	pre droneIsCharged : self.energy > 0
 	pre moveToNeighbour : (newX + newY).abs = 1
-	pre destinationIsFree : (Point.allInstances().select(p | p.x = self.position_drone.x + newX and p.y = self.position_drone.y + newY)->asSequence()->first().oclIsTypeOf(Warehouse)) or not Drone.allInstances -> exists(drone | drone.position_drone.x = self.position_drone.x + newX and drone.position_drone.y = self.position_drone.y + newY) 
+	pre destinationIsFree : (Point.allInstances().select(p | p.x = self.position_drone.x + newX and p.y = self.position_drone.y + newY)->asSequence()->first().oclIsTypeOf(Warehouse)) or not Drone.allInstances->exists(drone | drone.position_drone.x = self.position_drone.x + newX and drone.position_drone.y = self.position_drone.y + newY) 
 	post locationHasChanged : (self.position_drone <> self.position_drone@pre)
 
 context Drone::deliver()
@@ -278,7 +292,7 @@ context Drone::deliver()
 		Receptacle.allInstances-> one(r | r.distanceDrone(self) =0) and not Warehouse.allInstances-> exists(w | w.distance(self.position_drone) =0)
 	pre droneContainsCmd : self.capacity <> 0
 	post droneHasDeliveredCmd : self.capacity = 0
-	post droneDoesnotMove : Receptacle.allInstances-> one(r | r.distanceDrone(self) =0) and 
+	post droneDoesNotMove : Receptacle.allInstances-> one(r | r.distanceDrone(self) =0) and 
 		not Warehouse.allInstances-> exists (w | w.distance(self.position_drone) =0)
 
 context Drone::recharge()
@@ -313,11 +327,11 @@ context point:Point inv atMostOneDronePerReceptacle:
 		Drone.allInstances().select(d|d.position_drone = point)->size() >= 0
 	endif
 
--- a receptacle's transitive closure contains all receptacles
+-- ** a receptacle's transitive closure contains all receptacles
 context recep:Receptacle inv completeClosure :
 	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
--- Every drone in a simple point (not receptacle or warehouse) must have charge
+-- ** Every drone in a simple point (not receptacle or warehouse) must have charge
 context Drone inv droneHasChargeIfSimplePosition :
 	Drone.allInstances().select(d| not d.position_drone.oclIsTypeOf(Warehouse) and d.position_drone.oclIsTypeOf(Receptacle) and d.energy < 1)->size() = 0
 
@@ -328,19 +342,19 @@ context Command inv commandForReceptaclePosition :
 -- ** Only One Warehouse in the grid
 context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
 
--- DNB
-context Grid inv dnb : 
+-- ** DNB
+context Grid inv DNB : 
 	self.DNB >= self.warehouse.drones->size()
 
--- DCAP
-context Grid inv dcap : 
+-- ** DCAP
+context Grid inv DCAP : 
 	Drone.allInstances().select(d| d.capacity > self.DCAP)->size() = 0 
 
--- RNB
-context Grid inv rnb : 
+-- ** RNB
+context Grid inv RNB : 
 	 self.RNB >= self.receptacles->size() 
 
--- RCAP
-context Grid inv rcap : 
+-- ** RCAP
+context Grid inv RCAP : 
 	Receptacle.allInstances().select(r| r.capacity > self.RCAP)->size() = 0 
 

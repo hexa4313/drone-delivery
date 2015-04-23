@@ -94,6 +94,6 @@ open drone_model.use
 !insert (r3, d3) into Delivery
 
 
-d1.move(0,-1)
-d2.move(1, 1);
+--!d1.move(0,-1)
+--!d2.move(1, 1);
 check
