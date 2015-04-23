@@ -36,8 +36,8 @@ class Drone
 				distance_toDest := self.distancePoint(self.destination_point);
 
 				// TODO improve the algo (occupation !!)
-				-- .select(p | p.distance(self.destination_point) < distance_toDest)
-				point_dest := self.position_drone.neighbours()->asSequence->first();
+				-- 
+				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
 
 			   // shift  = point_dest.x - self.position_drone.x ...
 			   self.move(point_dest);
@@ -211,7 +211,6 @@ class Grid
     operations
     	tick() -- TODO : when can we consider that all objects have finished their operations and we can send the following tick ??
     		begin
-    			--self.Time := self.Time + 1;
     			declare drones_torecharge : Set(Drone), drones_todeliver :  Set(Drone),drones_tomove :  Set(Drone), tmp : Boolean;
 
     			drones_torecharge := Drone.allInstances().select(d | d.capacity > 0  and d.receptacle.distancePoint(d.position_drone) = 0);
@@ -219,6 +218,7 @@ class Grid
     			d.position_drone.oclIsTypeOf(Warehouse))); -- exclude drones_torecharge 
     			drones_tomove := Drone.allInstances(); -- exclude the 2 prec collections
 
+    			self.Time := self.Time + 1; -- set time
     			-- recharge drones which need to be 
 
     			for dc in drones_torecharge do
