@@ -35,11 +35,10 @@ class Drone
 				declare point_dest : Point, distance_toDest : Integer, newX : Integer, newY : Integer;
 				distance_toDest := self.distancePoint(self.destination_point);
 
-				// TODO improve the algo (occupation !!)
-				-- 
+				-- TODO improve the algo (occupation !!)
 				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
 
-			   // shift  = point_dest.x - self.position_drone.x ...
+			   -- shift  = point_dest.x - self.position_drone.x ...
 			   self.move(point_dest);
 			end
 		move (point : Point) -- ?? deplacement vers un Point ou comme pour l'instant, ie deplacer d'un x et d'un y
@@ -270,7 +269,6 @@ association Crew between
 	Drone[*] role drones;
 
 end
-
 
 
 -- ####### CONSTRAINTS  ##########
