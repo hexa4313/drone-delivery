@@ -3,8 +3,8 @@ model DroneDeliveryModel
 -- enumeration for states
 enum Drone_State {Created, Parked, Delivering, Charging, Unloading, Returning}
 -- Parked = drone init or drone in a warehouse
--- Delivering = drone moving to a receptacle to deliver a cmd
--- Charging = drone charging his battery
+-- Delivering = drone is moving to a receptacle to deliver a cmd
+-- Charging = drone is charging his battery
 -- Unloading = drone is at destination receptacle and is delivering cmd
 -- Returning = drone has delivered a cmd and is now returning to warehouse
 
@@ -36,7 +36,7 @@ class Drone
 				distance_toDest := self.distancePoint(self.destination_point);
 
 				-- TODO improve the algo (occupation !!)
-				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
+				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest and (p.state = Point_State::Free or (p.oclIsTypeOf(Receptacle) and p.oclInState(Free)) or (p.oclIsTypeOf(Warehouse)))->asSequence->first();
 
 			   -- shift  = point_dest.x - self.position_drone.x ...
 			   self.move(point_dest);
@@ -96,7 +96,6 @@ class Drone
 					Unloading -> Returning { shift() }
 					Returning -> Charging { recharge() }
 					Charging -> Charging { recharge() }
-					Returning -> Parked { finish() }
 					Charging -> Unloading { deliver() }
 					Unloading -> Charging { recharge() }
 					Returning -> Parked { finish() }
@@ -141,11 +140,7 @@ class Receptacle < Point
     operations 
     	-- All neighbours 
         neighboursRecept() : Set(Receptacle) =
-            Receptacle.allInstances()-> select (n | distance(n) < 3)
-
-        -- Neighbours
-        neighboursClosure() : Set(Receptacle) =
-            self.neighboursRecept() -> closure (r|r.neighboursRecept())
+            Receptacle.allInstances()->select (r| distance(r) < 3)
 
 		-- Get distance from given drone
 		distanceDrone(d : Drone) : Integer =
@@ -205,16 +200,16 @@ class Grid
     RCAP : Integer -- Capacity of a receptacle
     DNB  : Integer -- number of Drones
     DCAP : Integer -- Capacity of a drone
-    NELEMNTS: Integer -- Number of elements to generate
+    NELEMNTS: Integer -- Number of elements to generate (need ??)
 
     operations
     	tick() -- TODO : when can we consider that all objects have finished their operations and we can send the following tick ??
     		begin
     			declare drones_torecharge : Set(Drone), drones_todeliver :  Set(Drone),drones_tomove :  Set(Drone), tmp : Boolean;
 
-    			drones_torecharge := Drone.allInstances().select(d | d.capacity > 0  and d.receptacle.distancePoint(d.position_drone) = 0);
-    			drones_todeliver := Drone.allInstances().select(d | d.energy <= 1 and (d.position_drone.oclIsTypeOf(Receptacle) or 
-    			d.position_drone.oclIsTypeOf(Warehouse))); -- exclude drones_torecharge 
+    			drones_torecharge := Drone.allInstances().select(d | d.energy <= 1 and (d.position_drone.oclIsTypeOf(Receptacle) or d.position_drone.oclIsTypeOf(Warehouse))); 
+
+    			drones_todeliver := Drone.allInstances().select(d | d.capacity > 0  and d.receptacle.distancePoint(d.position_drone) = 0);-- exclude drones_torecharge 
     			drones_tomove := Drone.allInstances(); -- exclude the 2 prec collections
 
     			self.Time := self.Time + 1; -- set time
@@ -324,9 +319,6 @@ context point:Point inv atMostOneDronePerReceptacle:
 		Drone.allInstances().select(d|d.position_drone = point)->size() >= 0
 	endif
 
--- ** a receptacle's transitive closure contains all receptacles
-context recep:Receptacle inv completeClosure :
-	recep.neighboursClosure()->includesAll(Receptacle.allInstances())
 
 -- ** Every drone in a simple point (not receptacle or warehouse) must have charge
 context Drone inv droneHasChargeIfSimplePosition :
@@ -337,7 +329,11 @@ context Command inv commandForReceptaclePosition :
 	Command.allInstances().select(c| not c.receptacle.oclIsTypeOf(Receptacle))->size() = 0
 
 -- ** Only One Warehouse in the grid
-context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size = 1
+context Warehouse inv onlyOneWarehouse : Warehouse.allInstances->size() = 1
+
+-- ** At least 1 Receptacle as warehouse's neighbour 
+context Warehouse inv atLeastOneNeighbourReceptacle : 
+	self.neighbours()->select(p | p.oclIsTypeOf(Receptacle))->size() >= 1
 
 -- ** DNB
 context Grid inv DNB : 

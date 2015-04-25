@@ -2,7 +2,8 @@ reset
 
 open drone_model.use
 
-!create grid : Grid
+-- ***** Grid 2x2 (9 intersections)  *******
+!create grid : Grid 
 !set grid.RNB := 5
 !set grid.RCAP := 10
 !set grid.DNB := 5
@@ -18,8 +19,9 @@ open drone_model.use
 !set r1.y := 0
 
 !create r2 : Receptacle
-!set r2.x := 2
+!set r2.x := 1
 !set r2.y := 1
+
 !create r3 : Receptacle
 !set r3.x := 1
 !set r3.y := 2
