@@ -36,7 +36,7 @@ class Drone
 				distance_toDest := self.distancePoint(self.destination_point);
 
 				-- TODO improve the algo (occupation !!)
-				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest and p.state = Point_State::Free)->asSequence->first();
+				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest and (p.state = Point_State::Free or (p.oclIsTypeOf(Receptacle) and p.oclInState(Free)) or (p.oclIsTypeOf(Warehouse)))->asSequence->first();
 
 			   -- shift  = point_dest.x - self.position_drone.x ...
 			   self.move(point_dest);
