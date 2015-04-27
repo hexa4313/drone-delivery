@@ -15,6 +15,7 @@ class Drone
 	attributes
 		capacity : Integer init = 0
 		energy : Integer init = 3
+		state : Drone_State init = Drone_State::Parked
 		destination_point : Point -- needed by shift()
 			derive : 
 			if self.capacity > 0 then self.receptacle
@@ -36,7 +37,9 @@ class Drone
 				distance_toDest := self.distancePoint(self.destination_point);
 
 				-- TODO improve the algo (occupation !!)
-				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest and (p.state = Point_State::Free or (p.oclIsTypeOf(Receptacle) and p.oclInState(Free)) or (p.oclIsTypeOf(Warehouse)))->asSequence->first();
+				point_dest := self.position_drone.neighbours()->select(p | p.distance(self.destination_point) < distance_toDest)->asSequence->first();
+
+				-- cast p to Recep to use instate  and (p.state = Point_State::Free or (p.oclIsTypeOf(Receptacle) and p.oclInState(Free)) or (p.oclIsTypeOf(Warehouse)))
 
 			   -- shift  = point_dest.x - self.position_drone.x ...
 			   self.move(point_dest);
@@ -97,6 +100,8 @@ class Drone
 					Returning -> Charging { recharge() }
 					Charging -> Charging { recharge() }
 					Charging -> Unloading { deliver() }
+					Charging -> Returning {[self.destination_point.oclIsTypeOf(Warehouse)] shift()}
+					Charging -> Delivering {[self.destination_point.oclIsTypeOf(Receptacle)] shift()}
 					Unloading -> Charging { recharge() }
 					Returning -> Parked { finish() }
 		end
@@ -312,7 +317,7 @@ context point:Point inv everyPointIsUniqueAndBelongToGrid :
 	 
 
 -- ** There is no 2 or more drones at the same receptacle
-context point:Point inv atMostOneDronePerReceptacle:
+context point:Point inv atMostOneDronePerPoint:
 	if not point.oclIsTypeOf(Warehouse) then
 		Drone.allInstances().select(d|d.position_drone = point)->size() <= 1 
 	else
@@ -337,7 +342,7 @@ context Warehouse inv atLeastOneNeighbourReceptacle :
 
 -- ** DNB
 context Grid inv DNB : 
-	self.DNB >= self.warehouse.drones->size()
+	self.DNB = self.warehouse.drones->size()
 
 -- ** DCAP
 context Grid inv DCAP : 
@@ -345,7 +350,7 @@ context Grid inv DCAP :
 
 -- ** RNB
 context Grid inv RNB : 
-	 self.RNB >= self.receptacles->size() 
+	 self.RNB = self.receptacles->size() 
 
 -- ** RCAP
 context Grid inv RCAP : 

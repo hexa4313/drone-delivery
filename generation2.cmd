@@ -4,10 +4,11 @@ open drone_model.use
 
 -- ***** Grid 3x3 (16 intersections)  *******
 !create grid : Grid 
-!set grid.RNB := 8
+!set grid.RNB := 5
 !set grid.RCAP := 10
-!set grid.DNB := 8
+!set grid.DNB := 5
 !set grid.DCAP := 7
+!set grid.Length = 3
 -- !set grid.NELEMNTS := 10
 
 !create w : Warehouse

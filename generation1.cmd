@@ -4,9 +4,9 @@ open drone_model.use
 
 -- ***** Grid 2x2 (9 intersections)  *******
 !create grid : Grid 
-!set grid.RNB := 5
+!set grid.RNB := 3
 !set grid.RCAP := 10
-!set grid.DNB := 5
+!set grid.DNB := 3
 !set grid.DCAP := 7
 -- !set grid.NELEMNTS := 10
 
